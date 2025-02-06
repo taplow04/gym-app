@@ -15,7 +15,9 @@ body {
   color: var(--text-color);
   line-height: 1.6;
   overflow-x: hidden;
-  background: url("./bg.jpg") no-repeat center center fixed;
+  background-image: url("/bg.jpg");
+  /* background: url("./bg.jpg") no-repeat center center fixed; */
+  background-color: #bbb;
   background-size: cover;
 }
 .app{
