@@ -1,0 +1,91 @@
+/* ============================================================
+   FORGE — Design tokens
+   Single source of truth for color, type, space, radius,
+   shadow and motion. Components consume roles, never raw hex.
+   ============================================================ */
+
+:root {
+  /* ---- Surfaces (background hierarchy) ---- */
+  --bg: #0b0d10;            /* page plane */
+  --surface: #14171c;       /* cards / chart surface */
+  --surface-2: #1c2129;     /* nested / raised elements */
+  --surface-3: #262c36;     /* pressed / highest */
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --overlay: rgba(4, 6, 8, 0.72);
+
+  /* ---- Ink ---- */
+  --text-1: #f2f4f8;
+  --text-2: #a7b0bc;
+  --text-3: #67707d;
+  --text-inverse: #12160a;  /* on accent fills */
+
+  /* ---- Accent (volt) ---- */
+  --accent: #c8f542;
+  --accent-hover: #d7ff64;
+  --accent-dim: #9ccb1e;
+  --accent-soft: rgba(200, 245, 66, 0.12);
+  --accent-glow: 0 4px 24px rgba(200, 245, 66, 0.28);
+
+  /* ---- Status (reserved — never decorative) ---- */
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.12);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.12);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+
+  /* ---- Data viz ---- */
+  /* Sequential heatmap ramp (validated: monotonic L, adj. ΔE ≥ 15) */
+  --heat-0: #1c2129;        /* empty cell — recedes to surface */
+  --heat-1: #2a3813;
+  --heat-2: #46610f;
+  --heat-3: #6e9414;
+  --heat-4: #9ccb1e;
+  --heat-5: #c8f542;
+  --grid-line: rgba(255, 255, 255, 0.06);
+
+  /* ---- Typography ---- */
+  --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fs-xs: 0.6875rem;   /* 11 — overlines, axis ticks */
+  --fs-sm: 0.8125rem;   /* 13 — secondary, labels */
+  --fs-base: 0.9375rem; /* 15 — body */
+  --fs-md: 1.0625rem;   /* 17 — emphasized body, row titles */
+  --fs-lg: 1.25rem;     /* 20 — card titles */
+  --fs-xl: 1.5rem;      /* 24 — page titles */
+  --fs-2xl: 1.875rem;   /* 30 — big stats */
+  --fs-hero: 2.75rem;   /* 44 — hero figure (one per view) */
+
+  /* ---- Spacing (4px base) ---- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+
+  /* ---- Radius ---- */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 26px;
+  --r-full: 999px;
+
+  /* ---- Elevation ---- */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 12px 32px rgba(0, 0, 0, 0.38);
+
+  /* ---- Motion ---- */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-1: 150ms;
+  --dur-2: 250ms;
+  --dur-3: 420ms;
+
+  /* ---- Layout ---- */
+  --nav-h: 64px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --page-max: 640px;
+  --touch: 44px; /* minimum tap target */
+}
