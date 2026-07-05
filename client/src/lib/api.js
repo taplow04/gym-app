@@ -9,7 +9,13 @@
 const BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-const TIMEOUT_MS = 15000;
+// Generous: the free-tier API sleeps when idle and takes ~30-50s to wake.
+const TIMEOUT_MS = 30000;
+
+/** Fire-and-forget ping so a sleeping server starts waking on app load. */
+export function warmUpServer() {
+  fetch(BASE_URL + "/health").catch(() => {});
+}
 
 let accessToken = null;
 let onSessionExpired = () => {};
@@ -112,9 +118,10 @@ async function request(path, options = {}) {
   } catch (err) {
     if (err instanceof ApiError) throw err;
     if (err.name === "AbortError") {
-      throw new ApiError("The server is taking too long to respond — please try again", {
-        code: "timeout",
-      });
+      throw new ApiError(
+        "The server is taking too long — it may be waking up, please try again in a moment",
+        { code: "timeout" }
+      );
     }
     throw new ApiError("Can't reach the server — check your connection", { code: "network" });
   } finally {

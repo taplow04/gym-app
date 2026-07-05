@@ -90,13 +90,24 @@ clickable.
 1. Create an account at <https://www.brevo.com>.
 2. **Senders & Domains → Senders** → add and confirm the address you'll
    send from (this becomes `EMAIL_FROM`).
-3. **SMTP & API → SMTP** → generate an SMTP key. The page shows all
-   four values:
+3. **Preferred: the HTTPS API** — **SMTP & API → API Keys** → generate an
+   API key:
+
+   ```
+   BREVO_API_KEY=xkeysib-…
+   EMAIL_FROM="Forge <you@yourdomain.com>"
+   ```
+
+   Use this on Render/Railway/Heroku — those hosts block outbound SMTP
+   ports, while the HTTPS API (port 443) always works. When
+   `BREVO_API_KEY` is set it takes priority over SMTP.
+4. **Alternative: SMTP** (fine locally / on hosts that allow port 587) —
+   **SMTP & API → SMTP** → generate an SMTP key:
 
    ```
    SMTP_HOST=smtp-relay.brevo.com
    SMTP_PORT=587
-   SMTP_USER=<the login shown on that page, usually your account email>
+   SMTP_USER=<the login shown on that page>
    SMTP_PASS=<the generated SMTP key>
    EMAIL_FROM="Forge <you@yourdomain.com>"
    ```
@@ -138,6 +149,7 @@ CLIENT_URL=https://taplow04.github.io/gym-app
 | `CLOUDINARY_CLOUD_NAME` | uploads | Cloudinary dashboard (section 4) |
 | `CLOUDINARY_API_KEY` | uploads | Cloudinary dashboard (section 4) |
 | `CLOUDINARY_API_SECRET` | uploads | Cloudinary dashboard (section 4) |
+| `BREVO_API_KEY` | real email | Brevo → SMTP & API → API Keys (section 5) — preferred in production |
 | `SMTP_HOST` | real email | Brevo SMTP page (section 5) |
 | `SMTP_PORT` | real email | `587` (STARTTLS) or `465` (TLS) |
 | `SMTP_USER` | real email | Brevo SMTP login |

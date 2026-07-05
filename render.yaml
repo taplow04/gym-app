@@ -25,6 +25,10 @@ services:
         generateValue: true
       - key: JWT_REFRESH_SECRET
         generateValue: true
+      # Brevo HTTPS API key — REQUIRED on Render: outbound SMTP is blocked
+      # on free instances, the HTTPS API (port 443) always works.
+      - key: BREVO_API_KEY
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT

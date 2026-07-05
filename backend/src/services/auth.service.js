@@ -32,8 +32,9 @@ async function register({ name, email, password }, meta) {
   const rawVerify = user.createOneTimeToken("emailVerification", 24 * 60);
   await user.save();
 
+  // Fire-and-forget: the response must never wait on the email provider.
   const verifyUrl = `${env.clientUrl}/#/verify-email/${rawVerify}`;
-  await sendEmail(user.email, templates.verifyEmail(user.name, verifyUrl)).catch((err) =>
+  sendEmail(user.email, templates.verifyEmail(user.name, verifyUrl)).catch((err) =>
     console.error("verification email failed:", err.message)
   );
 
@@ -101,7 +102,9 @@ async function resendVerification(user) {
   const raw = fresh.createOneTimeToken("emailVerification", 24 * 60);
   await fresh.save();
   const verifyUrl = `${env.clientUrl}/#/verify-email/${raw}`;
-  await sendEmail(fresh.email, templates.verifyEmail(fresh.name, verifyUrl));
+  sendEmail(fresh.email, templates.verifyEmail(fresh.name, verifyUrl)).catch((err) =>
+    console.error("resend verification email failed:", err.message)
+  );
 }
 
 async function forgotPassword(email) {
@@ -111,7 +114,9 @@ async function forgotPassword(email) {
   const raw = user.createOneTimeToken("passwordReset", 15);
   await user.save();
   const resetUrl = `${env.clientUrl}/#/reset-password/${raw}`;
-  await sendEmail(user.email, templates.resetPassword(user.name, resetUrl));
+  sendEmail(user.email, templates.resetPassword(user.name, resetUrl)).catch((err) =>
+    console.error("password reset email failed:", err.message)
+  );
 }
 
 async function resetPassword(rawToken, newPassword) {
@@ -126,7 +131,7 @@ async function resetPassword(rawToken, newPassword) {
   user.passwordResetExpires = undefined;
   await user.save();
   await logoutAll(user._id); // every existing session dies with the old password
-  await sendEmail(user.email, templates.passwordChanged(user.name)).catch(() => {});
+  sendEmail(user.email, templates.passwordChanged(user.name)).catch(() => {});
   return user;
 }
 
@@ -138,7 +143,7 @@ async function changePassword(userId, currentPassword, newPassword) {
   user.password = newPassword;
   await user.save();
   await logoutAll(user._id);
-  await sendEmail(user.email, templates.passwordChanged(user.name)).catch(() => {});
+  sendEmail(user.email, templates.passwordChanged(user.name)).catch(() => {});
   return user;
 }
 

@@ -32,6 +32,10 @@ const env = {
     },
   },
 
+  // Brevo HTTPS API key — preferred over SMTP in production (hosts like
+  // Render block outbound SMTP ports; 443 always works).
+  brevoApiKey: process.env.BREVO_API_KEY,
+
   smtp: {
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT) || 587,

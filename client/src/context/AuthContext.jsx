@@ -6,7 +6,13 @@ import {
   useMemo,
   useState,
 } from "react";
-import { api, setAccessToken, refreshSession, configureApi } from "../lib/api";
+import {
+  api,
+  setAccessToken,
+  refreshSession,
+  configureApi,
+  warmUpServer,
+} from "../lib/api";
 import { readStore, writeStore } from "../hooks/useLocalStorage";
 import { useToast } from "../components/Toast";
 
@@ -55,6 +61,9 @@ export function AuthProvider({ children }) {
   // ── Boot: restore the previous session ──
   useEffect(() => {
     let cancelled = false;
+    // Free-tier hosting sleeps when idle — start waking it immediately so
+    // it's ready by the time the user submits a form.
+    warmUpServer();
     const mode = readStore("authMode", null);
 
     if (mode === "guest") {
