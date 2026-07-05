@@ -709,6 +709,227 @@
   text-transform: uppercase;
 }
 
+/* ================= Auth (login / signup / recovery) ================= */
+.auth-screen {
+  min-height: 100dvh;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: var(--sp-7) var(--sp-5) calc(var(--sp-7) + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-7);
+}
+
+.auth-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: var(--text-inverse);
+  display: grid;
+  place-items: center;
+  box-shadow: var(--accent-glow);
+}
+
+.auth-wordmark {
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.auth-head {
+  text-align: center;
+  margin-bottom: var(--sp-6);
+}
+
+.auth-title {
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.auth-sub {
+  margin-top: var(--sp-2);
+  color: var(--text-2);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+}
+
+/* Remember-me / forgot-password row */
+.auth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+
+.auth-row--start {
+  justify-content: flex-start;
+}
+
+.auth-link {
+  color: var(--accent);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  min-height: var(--touch);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.auth-link--center {
+  justify-content: center;
+  width: 100%;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin: var(--sp-6) 0 var(--sp-4);
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.auth-foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.auth-foot .btn--ghost {
+  align-self: center;
+}
+
+/* Success / error result panels (reset sent, verified, expired…) */
+.auth-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-5);
+  text-align: center;
+}
+
+.auth-result-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-full);
+  background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+}
+
+.auth-result-icon--ok {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.auth-result-icon--bad {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.auth-result-text {
+  color: var(--text-2);
+  line-height: 1.55;
+  max-width: 300px;
+}
+
+.auth-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+
+/* Boot splash while the session restores */
+.splash {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+}
+
+.splash .auth-logo {
+  width: 56px;
+  height: 56px;
+  animation: splash-pulse 1.4s var(--ease) infinite;
+}
+
+@keyframes splash-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.92); opacity: 0.75; }
+}
+
+/* ================= Profile — account ================= */
+.avatar-wrap {
+  position: relative;
+}
+
+.avatar-img {
+  width: 84px;
+  height: 84px;
+  border-radius: var(--r-full);
+  border: 2px solid var(--accent-dim);
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-edit {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  color: var(--text-1);
+  display: grid;
+  place-items: center;
+  transition: background var(--dur-1) var(--ease);
+}
+
+.avatar-edit:hover {
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+
+.avatar-uploading {
+  opacity: 0.5;
+}
+
+.account-identity {
+  text-align: center;
+}
+
+.account-name {
+  font-size: var(--fs-md);
+  font-weight: 800;
+}
+
+.account-email {
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  margin-top: 2px;
+}
+
 /* ================= Responsive: tablet & desktop ================= */
 @media (min-width: 768px) {
   :root {

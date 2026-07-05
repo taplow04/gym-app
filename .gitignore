@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Env — real values never committed (.env.example is the template)
+.env
+.env.*
+!.env.example
