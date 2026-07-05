@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://forge-api.onrender.com/api/:path*"
+    }
+  ],
+  "build": {
+    "env": {
+      "VITE_API_URL": "/api"
+    }
+  }
+}
