@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://forge-api.onrender.com/api/:path*"
+      "destination": "https://gym-app-9200.onrender.com/api/:path*"
     }
   ],
   "build": {
