@@ -1,0 +1,15 @@
+# The frontend lives in its own repository (client/.git → taplow04/gym-app)
+# and is deployed to GitHub Pages from there — this repo tracks the backend
+# and shared docs only.
+client/
+
+node_modules/
+
+# Env — real values never committed (.env.example is the template)
+.env
+.env.*
+!.env.example
+
+logs/
+*.log
+.DS_Store
