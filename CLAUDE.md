@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project layout
 
-Two sibling apps:
+One monorepo (remote `https://github.com/taplow04/gym-app.git`, git root here) with two apps:
 
-- `client/` — the React frontend. Has its own git repository (`client/.git`, remote `https://github.com/taplow04/gym-app.git`, deployed to GitHub Pages). Run frontend npm/git commands from inside `client/`.
+- `client/` — the React frontend, deployed to GitHub Pages via `npm run deploy` from inside `client/` (publishes to the repo's `gh-pages` branch). Run frontend npm commands from inside `client/`. ⚠️ The deployed build defaults its API URL to localhost — set `VITE_API_URL` in `client/.env` before deploying once the API is hosted.
 - `backend/` — the Forge API (Node 4-layer Express app, MongoDB Atlas). See `backend/README.md` for setup/env, `../SETUP.md` for external-service setup (Atlas/Cloudinary/Brevo), and `backend/src/docs/api.md` for the endpoint table. `npm run dev|start|seed` from inside `backend/`. Secrets live in `backend/.env` (gitignored — never commit it). The frontend calls this API for **auth + account only** (`client/src/lib/api.js`, `context/AuthContext.jsx`); workout/plan/progress data is still localStorage-only. The API's data model deliberately mirrors the frontend's (sessions/entries/sets, 7-day Monday-first plans, kg storage) so data integration is a swap inside `useLocalStorage`. `CLIENT_URL` must include the `/gym-app` base path (email links); CORS derives the bare origin from it.
 
 There is no test suite in either app: verification = drive the running app/API (see `client/.claude/skills/verify/SKILL.md`; for the API there's a full E2E script pattern — register→plan→session→complete→stats→privacy probes — hit `http://localhost:5000/api`).
