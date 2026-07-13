@@ -14,6 +14,7 @@ import Plan from "./pages/Plan";
 import Workout from "./pages/Workout";
 import Progress from "./pages/Progress";
 import Profile from "./pages/Profile";
+import Timer from "./pages/Timer";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -69,7 +70,9 @@ function Shell() {
         <Route path="/signup" element={<Register />} />
         <Route path="/forgot-password" element={<PublicOnly><ForgotPassword /></PublicOnly>} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
-        <Route path="/verify-email/:token" element={<VerifyEmail />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        {/* Legacy link-based verification emails land on the OTP screen. */}
+        <Route path="/verify-email/:token" element={<Navigate to="/verify-email" replace />} />
 
         {/* App tabs — session required */}
         <Route path="/" element={<RequireAuth><Home /></RequireAuth>} />
@@ -77,6 +80,7 @@ function Shell() {
         <Route path="/workout" element={<RequireAuth><Workout /></RequireAuth>} />
         <Route path="/progress" element={<RequireAuth><Progress /></RequireAuth>} />
         <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+        <Route path="/timer" element={<RequireAuth><Timer /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {!onAuthScreen && <BottomNav />}

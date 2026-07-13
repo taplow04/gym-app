@@ -70,8 +70,11 @@ const userSchema = new mongoose.Schema(
 
     // ── Auth state ──
     emailVerified: { type: Boolean, default: false },
-    emailVerificationToken: { type: String, select: false },
-    emailVerificationExpires: { type: Date, select: false },
+    // OTP email verification — only the HMAC of the code is stored.
+    emailOtpHash: { type: String, select: false },
+    emailOtpExpires: { type: Date, select: false },
+    emailOtpAttempts: { type: Number, default: 0, select: false },
+    emailOtpLastSentAt: { type: Date, select: false },
     passwordResetToken: { type: String, select: false },
     passwordResetExpires: { type: Date, select: false },
     passwordChangedAt: { type: Date, select: false },
@@ -114,13 +117,51 @@ userSchema.methods.createOneTimeToken = function (field, ttlMinutes) {
 userSchema.statics.hashToken = (raw) =>
   crypto.createHash("sha256").update(raw).digest("hex");
 
+// A 6-digit code has only 10^6 states — a plain sha256 would fall to an
+// offline brute force if the DB leaked. Keyed HMAC (server secret) +
+// per-user context closes that off.
+const hashOtp = (userId, code) =>
+  crypto
+    .createHmac("sha256", process.env.JWT_ACCESS_SECRET)
+    .update(`${userId}:${code}`)
+    .digest("hex");
+
+/** Generate a fresh email OTP (invalidates any previous one). Returns the raw code. */
+userSchema.methods.createEmailOtp = function (ttlMinutes) {
+  const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+  this.emailOtpHash = hashOtp(this._id, code);
+  this.emailOtpExpires = new Date(Date.now() + ttlMinutes * 60 * 1000);
+  this.emailOtpAttempts = 0;
+  this.emailOtpLastSentAt = new Date();
+  return code;
+};
+
+userSchema.methods.checkEmailOtp = function (code) {
+  const expected = this.emailOtpHash;
+  const given = hashOtp(this._id, code);
+  return (
+    Boolean(expected) &&
+    crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(given))
+  );
+};
+
+/** Remove all OTP state (after success or hard invalidation). */
+userSchema.methods.clearEmailOtp = function () {
+  this.emailOtpHash = undefined;
+  this.emailOtpExpires = undefined;
+  this.emailOtpAttempts = undefined;
+  this.emailOtpLastSentAt = undefined;
+};
+
 // Strip anything sensitive from every serialized user, everywhere.
 userSchema.set("toJSON", {
   virtuals: true,
   transform(doc, ret) {
     delete ret.password;
-    delete ret.emailVerificationToken;
-    delete ret.emailVerificationExpires;
+    delete ret.emailOtpHash;
+    delete ret.emailOtpExpires;
+    delete ret.emailOtpAttempts;
+    delete ret.emailOtpLastSentAt;
     delete ret.passwordResetToken;
     delete ret.passwordResetExpires;
     delete ret.passwordChangedAt;

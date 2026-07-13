@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import AuthLayout, { FormError, BtnSpinner } from "./AuthLayout";
 import TextField from "../../components/TextField";
 import PasswordField from "../../components/PasswordField";
@@ -30,8 +30,14 @@ export default function Register() {
   const { register, updateProfile, isAuthed } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [step, setStep] = useState(1);
+  // The OTP screen sends users back here for the optional profile step.
+  const [step] = useState(location.state?.step === 2 ? 2 : 1);
+  // Once the account POST is in flight we're intentionally becoming
+  // authed — the "already signed in" guard below must stand down or its
+  // <Navigate to="/"> races (and beats) our redirect to the OTP screen.
+  const creating = useRef(false);
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
 
@@ -65,11 +71,13 @@ export default function Register() {
     if (!valid || loading) return;
     setLoading(true);
     setServerError("");
+    creating.current = true;
     try {
       await register({ name: name.trim(), email: email.trim(), password });
-      toast("Account created — check your inbox to verify your email", "success");
-      setStep(2);
+      toast("Account created — we emailed you a 6-digit code", "success");
+      navigate("/verify-email", { state: { from: "signup" } });
     } catch (err) {
+      creating.current = false;
       // Field-level messages from the API win over the generic banner.
       const fieldMsg = err.fieldError?.("email") || err.fieldError?.("password");
       setServerError(fieldMsg || err.message);
@@ -107,7 +115,7 @@ export default function Register() {
   };
 
   // Already signed in and not mid-onboarding → nothing to do here.
-  if (isAuthed && step === 1) return <Navigate to="/" replace />;
+  if (isAuthed && step === 1 && !creating.current) return <Navigate to="/" replace />;
 
   if (step === 2) {
     return (

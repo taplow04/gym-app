@@ -9,6 +9,8 @@ import Icon from "../components/Icon";
 import EmptyState from "../components/EmptyState";
 import ExercisePicker from "../components/ExercisePicker";
 import RestTimer from "../components/RestTimer";
+import Sheet from "../components/Sheet";
+import { fmtShort } from "../lib/dates";
 import { useToast } from "../components/Toast";
 
 const makeSet = (from) => ({
@@ -16,6 +18,51 @@ const makeSet = (from) => ({
   reps: from ? from.reps : "",
   done: false,
 });
+
+// Set-type cycle: working → warm-up → drop → working.
+const NEXT_TYPE = { undefined: "w", w: "d", d: undefined };
+const TYPE_LABEL = { w: "W", d: "D" };
+
+/** Past performances of one exercise — opened from the exercise name. */
+function ExerciseHistorySheet({ exId, name, unit, history, onClose }) {
+  const appearances = [];
+  for (const session of history) {
+    for (const entry of session.entries) {
+      if (entry.exId !== exId) continue;
+      const done = entry.sets.filter((s) => s.done);
+      if (done.length > 0) appearances.push({ dateKey: session.dateKey, sets: done });
+      break;
+    }
+    if (appearances.length >= 6) break;
+  }
+  return (
+    <Sheet title={name} onClose={onClose}>
+      {appearances.length === 0 ? (
+        <EmptyState
+          icon="clock"
+          title="No history yet"
+          sub="Finish sets of this exercise and they'll show up here."
+        />
+      ) : (
+        appearances.map((a) => (
+          <div key={a.dateKey} className="row">
+            <div className="row-main">
+              <div className="row-title">{fmtShort(a.dateKey)}</div>
+              <div className="row-sub">
+                {a.sets.map((s, i) => (
+                  <span key={i}>
+                    {i > 0 && " · "}
+                    {s.type === "w" ? "W " : ""}{s.weight || 0}{unit}×{s.reps}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </Sheet>
+  );
+}
 
 const makeEntry = (ex) => ({
   exId: ex.id,
@@ -101,10 +148,13 @@ export default function Workout() {
   const [history, setHistory] = useLocalStorage("history", []);
   const [plan] = useLocalStorage("plan", DEFAULT_PLAN);
   const [profile] = useLocalStorage("profile", { name: "", unit: "kg", restSec: 90 });
+  const [templates, setTemplates] = useLocalStorage("templates", []);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [rest, setRest] = useState(null); // { endsAt, total }
   const [summary, setSummary] = useState(null); // { session, prs }
   const [discardArmed, setDiscardArmed] = useState(false);
+  const [historyFor, setHistoryFor] = useState(null); // { exId, name }
+  const [noteOpen, setNoteOpen] = useState({}); // entry index → bool
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -166,6 +216,45 @@ export default function Workout() {
     }
     updateSet(ei, si, "done", !set.done);
   };
+
+  const cycleSetType = (ei, si) => {
+    const current = active.entries[ei].sets[si].type;
+    updateSet(ei, si, "type", NEXT_TYPE[current]);
+  };
+
+  const updateNote = (ei, note) => {
+    setActive((prev) => ({
+      ...prev,
+      entries: prev.entries.map((entry, i) => (i === ei ? { ...entry, note } : entry)),
+    }));
+  };
+
+  const saveTemplate = () => {
+    const exIds = active.entries.map((e) => e.exId);
+    if (exIds.length === 0) {
+      toast("Add exercises before saving a template", "danger");
+      return;
+    }
+    const base = active.title || "My workout";
+    const names = new Set(templates.map((t) => t.name));
+    let name = base;
+    for (let n = 2; names.has(name); n++) name = `${base} (${n})`;
+    setTemplates((prev) => [...prev, { id: Date.now(), name, exIds }]);
+    toast(`Template "${name}" saved`, "success");
+  };
+
+  const startTemplate = (t) => {
+    const exercises = t.exIds.map(getExercise).filter(Boolean);
+    setActive({
+      id: Date.now(),
+      dateKey: todayKey(),
+      title: t.name,
+      startedAt: Date.now(),
+      entries: exercises.map(makeEntry),
+    });
+  };
+
+  const deleteTemplate = (id) => setTemplates((prev) => prev.filter((t) => t.id !== id));
 
   const addSet = (ei) => {
     setActive((prev) => {
@@ -280,6 +369,34 @@ export default function Workout() {
           </div>
         </section>
 
+        {templates.length > 0 && (
+          <section className="section">
+            <div className="section-head">
+              <h2 className="section-title">Templates</h2>
+            </div>
+            <div className="card">
+              {templates.map((t) => (
+                <div key={t.id} className="row">
+                  <div className="row-main">
+                    <div className="row-title">{t.name}</div>
+                    <div className="row-sub">{t.exIds.length} exercises</div>
+                  </div>
+                  <button
+                    className="icon-btn icon-btn--danger"
+                    onClick={() => deleteTemplate(t.id)}
+                    aria-label={`Delete template ${t.name}`}
+                  >
+                    <Icon name="trash" size={17} />
+                  </button>
+                  <button className="icon-btn" onClick={() => startTemplate(t)} aria-label={`Start ${t.name}`}>
+                    <Icon name="play" size={20} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <button className="btn btn--secondary btn--lg btn--full" onClick={() => startSession(null)}>
           <Icon name="plus" size={18} /> Start empty workout
         </button>
@@ -319,8 +436,22 @@ export default function Workout() {
         return (
           <section key={`${entry.exId}-${ei}`} className="card exercise-card">
             <div className="exercise-head">
-              <h2 className="exercise-name">{entry.name}</h2>
+              <button
+                className="exercise-name exercise-name--btn"
+                onClick={() => setHistoryFor({ exId: entry.exId, name: entry.name })}
+                aria-label={`Show history for ${entry.name}`}
+              >
+                {entry.name}
+              </button>
               <span className="badge badge--muted">{entry.muscle}</span>
+              <button
+                className={`icon-btn${noteOpen[ei] || entry.note ? " icon-btn--active" : ""}`}
+                onClick={() => setNoteOpen((o) => ({ ...o, [ei]: !o[ei] }))}
+                aria-label={`${noteOpen[ei] ? "Hide" : "Show"} note for ${entry.name}`}
+                aria-pressed={Boolean(noteOpen[ei])}
+              >
+                <Icon name="edit" size={17} />
+              </button>
               <button
                 className="icon-btn icon-btn--danger"
                 onClick={() => removeEntry(ei)}
@@ -329,6 +460,16 @@ export default function Workout() {
                 <Icon name="trash" size={18} />
               </button>
             </div>
+
+            {(noteOpen[ei] || entry.note) && (
+              <input
+                className="input exercise-note"
+                placeholder="Note — e.g. seat height 4, pause reps"
+                value={entry.note || ""}
+                onChange={(e) => updateNote(ei, e.target.value)}
+                aria-label={`Note for ${entry.name}`}
+              />
+            )}
 
             <div className="set-grid" aria-hidden="true">
               <span className="set-grid-head">Set</span>
@@ -342,7 +483,15 @@ export default function Workout() {
               const p = prev[si];
               return (
                 <div key={si} className={`set-grid${set.done ? " done" : ""}`}>
-                  <span className="set-index">{si + 1}</span>
+                  <button
+                    className={`set-index set-index--btn${set.type ? ` set-index--${set.type}` : ""}`}
+                    onClick={() => cycleSetType(ei, si)}
+                    aria-label={`Set ${si + 1} type: ${
+                      set.type === "w" ? "warm-up" : set.type === "d" ? "drop set" : "working set"
+                    } — tap to change`}
+                  >
+                    {TYPE_LABEL[set.type] || si + 1}
+                  </button>
                   <span className="set-prev">{p ? `${p.weight || 0}×${p.reps}` : "—"}</span>
                   <input
                     className="input input--num"
@@ -387,11 +536,36 @@ export default function Workout() {
         <Icon name="plus" size={18} /> Add exercise
       </button>
 
+      {active.entries.length > 0 && (
+        <button
+          className="btn btn--ghost btn--full"
+          style={{ marginTop: "var(--sp-2)" }}
+          onClick={saveTemplate}
+        >
+          <Icon name="bookmark" size={17} /> Save as template
+        </button>
+      )}
+
+      <p className="set-type-hint">
+        Tap a set number to mark it <strong>W</strong>arm-up or <strong>D</strong>rop set —
+        warm-ups don&rsquo;t count toward volume or PRs.
+      </p>
+
       {pickerOpen && (
         <ExercisePicker
           selectedIds={active.entries.map((e) => e.exId)}
           onPick={addExercise}
           onClose={() => setPickerOpen(false)}
+        />
+      )}
+
+      {historyFor && (
+        <ExerciseHistorySheet
+          exId={historyFor.exId}
+          name={historyFor.name}
+          unit={unit}
+          history={history}
+          onClose={() => setHistoryFor(null)}
         />
       )}
 

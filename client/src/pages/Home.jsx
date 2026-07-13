@@ -8,10 +8,19 @@ import {
   sessionVolume,
   sessionSetCount,
   formatVolume,
+  levelInfo,
 } from "../lib/stats";
-import { weekdayIndex, fmtLongToday, lastNDays, fmtMedium, fmtDuration } from "../lib/dates";
+import {
+  weekdayIndex,
+  fmtLongToday,
+  lastNDays,
+  fmtMedium,
+  fmtDuration,
+  todayKey,
+} from "../lib/dates";
 import Icon from "../components/Icon";
 import EmptyState from "../components/EmptyState";
+import { useToast } from "../components/Toast";
 
 const QUOTES = [
   "The last three reps make the muscle grow.",
@@ -38,9 +47,23 @@ export default function Home() {
   const [plan] = useLocalStorage("plan", DEFAULT_PLAN);
   const [active] = useLocalStorage("activeSession", null);
   const [profile] = useLocalStorage("profile", { name: "", unit: "kg", restSec: 90 });
+  const [water, setWater] = useLocalStorage("water", {});
+  const toast = useToast();
 
   const todayIdx = weekdayIndex();
   const today = plan[todayIdx];
+  const waterGoal = profile.waterGoal || 2500;
+  const waterToday = water[todayKey()] || 0;
+
+  const addWater = (ml) => {
+    const next = Math.max(0, waterToday + ml);
+    setWater((prev) => ({ ...prev, [todayKey()]: next }));
+    if (ml > 0 && waterToday < waterGoal && next >= waterGoal) {
+      toast("Water goal hit — nice! 💧", "success");
+    }
+  };
+
+  const level = useMemo(() => levelInfo(history), [history]);
 
   const week = useMemo(() => {
     const sessions = thisWeekSessions(history);
@@ -81,11 +104,18 @@ export default function Home() {
             {profile.name ? `, ${profile.name.split(" ")[0]}` : ""} 👋
           </h1>
         </div>
-        {streak > 0 && (
-          <span className="streak-chip" title={`${streak}-week training streak`}>
-            <Icon name="flame" size={16} strokeWidth={2.2} /> {streak}wk
-          </span>
-        )}
+        <div className="home-chips">
+          {history.length > 0 && (
+            <span className="level-chip" title={`Level ${level.level} — ${level.xp} XP`}>
+              <Icon name="award" size={15} strokeWidth={2.2} /> Lv {level.level}
+            </span>
+          )}
+          {streak > 0 && (
+            <span className="streak-chip" title={`${streak}-week training streak`}>
+              <Icon name="flame" size={16} strokeWidth={2.2} /> {streak}wk
+            </span>
+          )}
+        </div>
       </header>
 
       {/* ---- Today / resume ---- */}
@@ -123,6 +153,56 @@ export default function Home() {
             </Link>
           </div>
         )}
+      </section>
+
+      {/* ---- Quick actions ---- */}
+      <section className="section">
+        <div className="quick-actions">
+          <Link to="/workout" className="quick-action">
+            <span className="quick-action-icon"><Icon name="play" size={20} /></span>
+            Workout
+          </Link>
+          <Link to="/timer" className="quick-action">
+            <span className="quick-action-icon"><Icon name="timer" size={20} /></span>
+            Timer
+          </Link>
+          <Link to="/progress" className="quick-action">
+            <span className="quick-action-icon"><Icon name="scale" size={20} /></span>
+            Log weight
+          </Link>
+          <button className="quick-action" onClick={() => addWater(250)}>
+            <span className="quick-action-icon"><Icon name="droplet" size={20} /></span>
+            +250ml
+          </button>
+        </div>
+      </section>
+
+      {/* ---- Water ---- */}
+      <section className="section">
+        <div className="card water-card">
+          <div className="water-head">
+            <span className="water-title">
+              <Icon name="droplet" size={16} /> Water today
+            </span>
+            <span className="water-amount">
+              {(waterToday / 1000).toFixed(waterToday % 1000 === 0 ? 0 : 2)}L
+              <span className="water-goal"> / {(waterGoal / 1000).toFixed(1)}L</span>
+            </span>
+          </div>
+          <div className="meter water-meter">
+            <div
+              className="meter-fill water-fill"
+              style={{ width: `${Math.min(100, (waterToday / waterGoal) * 100)}%` }}
+            />
+          </div>
+          <div className="water-actions">
+            <button className="chip" onClick={() => addWater(-250)} aria-label="Remove 250 millilitres">
+              <Icon name="minus" size={14} strokeWidth={2.5} /> 250
+            </button>
+            <button className="chip" onClick={() => addWater(250)}>+250ml</button>
+            <button className="chip" onClick={() => addWater(500)}>+500ml</button>
+          </div>
+        </div>
       </section>
 
       {/* ---- This week ---- */}

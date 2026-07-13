@@ -46,4 +46,9 @@ exports.changePassword = [
   }),
 ];
 
-exports.verifyEmail = [tokenParam];
+exports.verifyOtp = [
+  body("code")
+    .isString()
+    .matches(/^\d{6}$/)
+    .withMessage("The code is 6 digits"),
+];

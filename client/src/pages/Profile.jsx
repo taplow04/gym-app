@@ -43,6 +43,153 @@ function compressImage(file) {
   });
 }
 
+const ACTIVITY_FACTORS = [
+  ["1.2", "Sedentary (desk job)"],
+  ["1.375", "Light (1–3 sessions/wk)"],
+  ["1.55", "Moderate (3–5 sessions/wk)"],
+  ["1.725", "Active (6–7 sessions/wk)"],
+  ["1.9", "Very active (physical job)"],
+];
+
+/** BMI / BMR (Mifflin-St Jeor) / TDEE / macro calculator — all local. */
+function HealthToolkit({ profile, update }) {
+  const unit = profile.unit || "kg";
+  const heightCm = Number(profile.heightCm) || 0;
+  const age = Number(profile.age) || 0;
+  const rawWeight = Number(profile.bodyWeight) || 0;
+  const weightKg = unit === "lb" ? rawWeight * 0.4536 : rawWeight;
+  const gender = profile.gender || "";
+  const activity = Number(profile.activity) || 1.55;
+
+  const ready = heightCm > 0 && age > 0 && weightKg > 0;
+  let bmi = 0, bmr = 0, tdee = 0, protein = 0, fat = 0, carbs = 0;
+  if (ready) {
+    bmi = weightKg / Math.pow(heightCm / 100, 2);
+    const offset = gender === "male" ? 5 : gender === "female" ? -161 : -78;
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + offset;
+    tdee = bmr * activity;
+    protein = 1.8 * weightKg; // g
+    fat = (tdee * 0.25) / 9; // g
+    carbs = (tdee - protein * 4 - fat * 9) / 4; // g
+  }
+  const bmiLabel =
+    bmi === 0 ? "" : bmi < 18.5 ? "Underweight" : bmi < 25 ? "Healthy" : bmi < 30 ? "Overweight" : "Obese";
+
+  return (
+    <section className="section">
+      <div className="section-head">
+        <h2 className="section-title">Health toolkit</h2>
+      </div>
+      <div className="card">
+        <div className="auth-grid-2">
+          <div className="field">
+            <label className="field-label" htmlFor="hk-height">Height (cm)</label>
+            <input
+              id="hk-height"
+              className="input"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              placeholder="175"
+              value={profile.heightCm || ""}
+              onChange={(e) => update({ heightCm: e.target.value })}
+            />
+          </div>
+          <div className="field">
+            <label className="field-label" htmlFor="hk-age">Age</label>
+            <input
+              id="hk-age"
+              className="input"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              placeholder="25"
+              value={profile.age || ""}
+              onChange={(e) => update({ age: e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="auth-grid-2">
+          <div className="field">
+            <label className="field-label" htmlFor="hk-weight">Weight ({unit})</label>
+            <input
+              id="hk-weight"
+              className="input"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              placeholder={unit === "lb" ? "160" : "72"}
+              value={profile.bodyWeight || ""}
+              onChange={(e) => update({ bodyWeight: e.target.value })}
+            />
+          </div>
+          <div className="field">
+            <label className="field-label" htmlFor="hk-gender">Gender</label>
+            <select
+              id="hk-gender"
+              className="input"
+              value={gender}
+              onChange={(e) => update({ gender: e.target.value })}
+            >
+              <option value="">Prefer not to say</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+        </div>
+        <div className="field">
+          <label className="field-label" htmlFor="hk-activity">Activity level</label>
+          <select
+            id="hk-activity"
+            className="input"
+            value={String(activity)}
+            onChange={(e) => update({ activity: Number(e.target.value) })}
+          >
+            {ACTIVITY_FACTORS.map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </div>
+
+        {ready ? (
+          <>
+            <div className="progress-grid" style={{ marginTop: "var(--sp-2)" }}>
+              <div className="stat-tile">
+                <span className="stat-label">BMI</span>
+                <span className="stat-value">{bmi.toFixed(1)}</span>
+                <span className="stat-sub">{bmiLabel}</span>
+              </div>
+              <div className="stat-tile">
+                <span className="stat-label">BMR</span>
+                <span className="stat-value">{Math.round(bmr)}</span>
+                <span className="stat-sub">kcal at rest</span>
+              </div>
+              <div className="stat-tile">
+                <span className="stat-label">TDEE</span>
+                <span className="stat-value">{Math.round(tdee)}</span>
+                <span className="stat-sub">kcal maintenance</span>
+              </div>
+              <div className="stat-tile">
+                <span className="stat-label">Protein</span>
+                <span className="stat-value">{Math.round(protein)}g</span>
+                <span className="stat-sub">daily target</span>
+              </div>
+            </div>
+            <p style={{ color: "var(--text-3)", fontSize: "var(--fs-xs)", marginTop: "var(--sp-3)", lineHeight: 1.5 }}>
+              Maintenance macros: ~{Math.round(protein)}g protein · {Math.round(fat)}g fat ·{" "}
+              {Math.round(carbs)}g carbs. Eat ~300–500 kcal above TDEE to gain, below to cut.
+            </p>
+          </>
+        ) : (
+          <p style={{ color: "var(--text-3)", fontSize: "var(--fs-sm)" }}>
+            Fill in height, age and weight to see BMI, calorie and macro targets.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function Profile() {
   const { status, user, isAuthed, isGuest, logout, applyUser } = useAuth();
   const [profile, setProfile] = useLocalStorage("profile", {
@@ -87,20 +234,6 @@ export default function Profile() {
       toast(err.message, "danger");
     } finally {
       setUploading(false);
-    }
-  };
-
-  // ── Email verification ──
-  const [resending, setResending] = useState(false);
-  const resendVerification = async () => {
-    setResending(true);
-    try {
-      await api.post("/auth/resend-verification");
-      toast("Verification email sent — check your inbox", "success");
-    } catch (err) {
-      toast(err.message, "danger");
-    } finally {
-      setResending(false);
     }
   };
 
@@ -153,6 +286,11 @@ export default function Profile() {
         history: readStore("history", []),
         weights: readStore("weights", []),
         goals: readStore("goals", []),
+        measurements: readStore("measurements", []),
+        water: readStore("water", {}),
+        templates: readStore("templates", []),
+        favExercises: readStore("favExercises", []),
+        timer: readStore("timer", {}),
       },
       null,
       2
@@ -287,23 +425,12 @@ export default function Profile() {
                     marginBottom: "var(--sp-2)",
                   }}
                 >
-                  Verify your email to secure your account — the link lasts 24 hours.
+                  Verify your email to secure your account — we&rsquo;ll send you a
+                  6-digit code.
                 </p>
-                <button
-                  className="btn btn--secondary btn--full"
-                  onClick={resendVerification}
-                  disabled={resending}
-                >
-                  {resending ? (
-                    <>
-                      <BtnSpinner /> Sending…
-                    </>
-                  ) : (
-                    <>
-                      <Icon name="mail" size={17} /> Resend verification email
-                    </>
-                  )}
-                </button>
+                <Link to="/verify-email" className="btn btn--secondary btn--full">
+                  <Icon name="mail" size={17} /> Verify email now
+                </Link>
               </div>
             )}
 
@@ -417,7 +544,7 @@ export default function Profile() {
             </select>
           </div>
 
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field">
             <label className="field-label" htmlFor="profile-rest">
               Default rest timer
             </label>
@@ -433,8 +560,43 @@ export default function Profile() {
               <option value={180}>3 minutes</option>
             </select>
           </div>
+
+          <div className="field">
+            <label className="field-label" htmlFor="profile-weekly-goal">
+              Weekly workout goal
+            </label>
+            <select
+              id="profile-weekly-goal"
+              className="input"
+              value={profile.weeklyGoal || 3}
+              onChange={(e) => update({ weeklyGoal: Number(e.target.value) })}
+            >
+              {[2, 3, 4, 5, 6].map((n) => (
+                <option key={n} value={n}>{n} workouts / week</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label className="field-label" htmlFor="profile-water-goal">
+              Daily water goal
+            </label>
+            <select
+              id="profile-water-goal"
+              className="input"
+              value={profile.waterGoal || 2500}
+              onChange={(e) => update({ waterGoal: Number(e.target.value) })}
+            >
+              {[2000, 2500, 3000, 3500, 4000].map((ml) => (
+                <option key={ml} value={ml}>{(ml / 1000).toFixed(1)} litres</option>
+              ))}
+            </select>
+          </div>
         </div>
       </section>
+
+      {/* ── Health toolkit ── */}
+      <HealthToolkit profile={profile} update={update} />
 
       <section className="section">
         <div className="section-head">

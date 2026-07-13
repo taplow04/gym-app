@@ -6,13 +6,13 @@ Base URL: `/api` · 🔒 = Bearer access token required · 👑 = admin only
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/register` | — | `{ name, email, password }` → 201, user + accessToken + refresh cookie; sends verification email |
+| POST | `/register` | — | `{ name, email, password }` → 201, user + accessToken + refresh cookie; emails a 6-digit OTP |
 | POST | `/login` | — | `{ email, password, rememberMe? }` → tokens (refresh 30d if rememberMe, else 1d) |
 | POST | `/refresh` | cookie | Rotates the refresh token; reuse of a consumed token revokes all sessions |
 | POST | `/logout` | cookie | Revokes the presented refresh token |
 | POST | `/logout-all` | 🔒 | Revokes every session |
-| POST | `/verify-email/:token` | — | Marks email verified |
-| POST | `/resend-verification` | 🔒 | Re-sends the verification email (rate-limited) |
+| POST | `/verify-otp` | 🔒 | Verifies the 6-digit email OTP (`{ code }`; attempt-limited, expiring) |
+| POST | `/resend-otp` | 🔒 | Sends a fresh OTP, invalidating the previous one (60s cooldown + rate-limited) |
 | POST | `/forgot-password` | — | `{ email }` → always 200 (no enumeration); emails 15-min reset link |
 | POST | `/reset-password/:token` | — | `{ password }` → resets + revokes all sessions |
 | POST | `/change-password` | 🔒 | `{ currentPassword, newPassword }` → changes + revokes all sessions |

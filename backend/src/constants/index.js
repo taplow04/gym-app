@@ -8,34 +8,80 @@ const ROLES = Object.freeze({
   PREMIUM: "premium", // future-ready
 });
 
+// Mirrors client/src/data/exercises.js (the master dataset the seed imports).
 const MUSCLES = Object.freeze([
   "Chest",
   "Back",
   "Shoulders",
-  "Legs",
-  "Glutes",
+  "Traps",
   "Biceps",
   "Triceps",
   "Forearms",
   "Core",
+  "Obliques",
+  "Lower Back",
+  "Quads",
+  "Hamstrings",
+  "Glutes",
+  "Calves",
+  "Adductors",
+  "Abductors",
+  "Hip Flexors",
+  "Neck",
+  "Legs", // legacy value — old custom exercises may still carry it
   "Full Body",
+  "Olympic",
   "Cardio",
+  "Mobility",
 ]);
 
 const EQUIPMENT = Object.freeze([
   "Barbell",
   "Dumbbell",
+  "Kettlebell",
   "Machine",
   "Cable",
-  "Kettlebell",
+  "Smith Machine",
   "Bodyweight",
   "Band",
+  "Trap Bar",
+  "EZ Bar",
+  "Medicine Ball",
+  "Plate",
+  "Sled",
+  "Box",
   "Other",
 ]);
 
 const DIFFICULTY = Object.freeze(["beginner", "intermediate", "advanced"]);
 
-const EXERCISE_CATEGORIES = Object.freeze(["strength", "cardio", "mobility", "core"]);
+const EXERCISE_CATEGORIES = Object.freeze([
+  "strength",
+  "cardio",
+  "mobility",
+  "core",
+  "olympic",
+  "plyometric",
+]);
+
+const MECHANICS = Object.freeze(["compound", "isolation"]);
+
+const MOVEMENT_PATTERNS = Object.freeze([
+  "push",
+  "pull",
+  "hinge",
+  "squat",
+  "lunge",
+  "carry",
+  "rotation",
+  "core",
+  "isometric",
+  "cardio",
+  "plyo",
+  "olympic",
+  "mobility",
+  "stretch",
+]);
 
 const SET_TYPES = Object.freeze(["normal", "warmup", "dropset", "superset"]);
 
@@ -90,6 +136,8 @@ module.exports = {
   EQUIPMENT,
   DIFFICULTY,
   EXERCISE_CATEGORIES,
+  MECHANICS,
+  MOVEMENT_PATTERNS,
   SET_TYPES,
   SESSION_STATUS,
   GOAL_TYPES,

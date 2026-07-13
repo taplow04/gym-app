@@ -1,14 +1,19 @@
-// FORGE — Training math: volume, PRs, streaks, weekly aggregates.
+// FORGE — Training math: volume, PRs, streaks, weekly aggregates,
+// XP/levels, achievements, muscle distribution.
 // A "session" is { id, dateKey, title, startedAt, finishedAt,
-//   entries: [{ exId, name, muscle, sets: [{ weight, reps, done }] }] }
+//   entries: [{ exId, name, muscle, note?, sets: [{ weight, reps, done, type? }] }] }
+// set.type: undefined = working set, "w" = warm-up, "d" = drop set.
+// Warm-ups count toward nothing — no volume, no PRs.
 
-import { dateKey, fromKey, startOfWeek, addDays } from "./dates";
+import { dateKey, fromKey, startOfWeek, addDays, lastNDays } from "./dates";
+
+const isWorking = (s) => s.done && s.type !== "w";
 
 function doneSets(session) {
-  return session.entries.flatMap((e) => e.sets.filter((s) => s.done));
+  return session.entries.flatMap((e) => e.sets.filter(isWorking));
 }
 
-/** Total volume (kg lifted) of completed sets */
+/** Total volume (kg lifted) of completed working sets */
 export function sessionVolume(session) {
   return doneSets(session).reduce(
     (sum, s) => sum + (Number(s.weight) || 0) * (Number(s.reps) || 0),
@@ -38,7 +43,7 @@ export function bestSets(history) {
   for (const session of history) {
     for (const entry of session.entries) {
       for (const set of entry.sets) {
-        if (!set.done) continue;
+        if (!isWorking(set)) continue;
         const est = est1RM(set.weight, set.reps);
         if (est <= 0) continue;
         const current = best.get(entry.exId);
@@ -127,4 +132,90 @@ export function formatVolume(kg) {
     return `${t >= 10 ? Math.round(t) : t.toFixed(1)}t`;
   }
   return `${Math.round(kg)}kg`;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Aggregates over a window                                          */
+/* ------------------------------------------------------------------ */
+
+/** Totals over the last n days: sessions, volume, sets, duration (ms). */
+export function windowTotals(history, days = 30) {
+  const keys = new Set(lastNDays(days));
+  const sessions = history.filter((s) => keys.has(s.dateKey));
+  return {
+    sessions: sessions.length,
+    volume: sessions.reduce((sum, s) => sum + sessionVolume(s), 0),
+    sets: sessions.reduce((sum, s) => sum + sessionSetCount(s), 0),
+    durationMs: sessions.reduce(
+      (sum, s) => sum + Math.max(0, (s.finishedAt || 0) - (s.startedAt || 0)),
+      0
+    ),
+  };
+}
+
+/** Working sets per muscle over the last n days, sorted descending. */
+export function muscleDistribution(history, days = 30) {
+  const keys = new Set(lastNDays(days));
+  const counts = new Map();
+  for (const session of history) {
+    if (!keys.has(session.dateKey)) continue;
+    for (const entry of session.entries) {
+      const n = entry.sets.filter(isWorking).length;
+      if (n > 0) counts.set(entry.muscle, (counts.get(entry.muscle) || 0) + n);
+    }
+  }
+  return [...counts.entries()]
+    .map(([muscle, sets]) => ({ muscle, sets }))
+    .sort((a, b) => b.sets - a.sets);
+}
+
+/* ------------------------------------------------------------------ */
+/*  XP & levels — derived from history, never stored                  */
+/* ------------------------------------------------------------------ */
+
+export function totalXp(history) {
+  return history.reduce((xp, s) => xp + 50 + sessionSetCount(s) * 2, 0);
+}
+
+/** Cumulative XP required to REACH level l (l ≥ 1). */
+const xpForLevel = (l) => 150 * (l - 1) * l; // 0, 300, 900, 1800, 3000…
+
+export function levelInfo(history) {
+  const xp = totalXp(history);
+  let level = 1;
+  while (xpForLevel(level + 1) <= xp) level += 1;
+  const floor = xpForLevel(level);
+  const ceil = xpForLevel(level + 1);
+  return { level, xp, into: xp - floor, needed: ceil - floor };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Achievements — computed, celebratory, never stored                */
+/* ------------------------------------------------------------------ */
+
+const ACHIEVEMENTS = [
+  { id: "first", name: "First Rep", desc: "Finish your first workout", icon: "zap", test: (h) => h.length >= 1 },
+  { id: "ten", name: "Regular", desc: "10 workouts logged", icon: "dumbbell", test: (h) => h.length >= 10 },
+  { id: "fifty", name: "Committed", desc: "50 workouts logged", icon: "dumbbell", test: (h) => h.length >= 50 },
+  { id: "hundred", name: "Centurion", desc: "100 workouts logged", icon: "trophy", test: (h) => h.length >= 100 },
+  { id: "streak4", name: "On Fire", desc: "4-week training streak", icon: "flame", test: (h) => weekStreak(h) >= 4 },
+  { id: "streak12", name: "Unstoppable", desc: "12-week training streak", icon: "flame", test: (h) => weekStreak(h) >= 12 },
+  { id: "vol10", name: "Ten Tonnes", desc: "10t lifted all time", icon: "trend", test: (h) => h.reduce((v, s) => v + sessionVolume(s), 0) >= 10_000 },
+  { id: "vol100", name: "Heavy Industry", desc: "100t lifted all time", icon: "trend", test: (h) => h.reduce((v, s) => v + sessionVolume(s), 0) >= 100_000 },
+  { id: "sets1k", name: "Set Collector", desc: "1,000 working sets", icon: "check", test: (h) => h.reduce((n, s) => n + sessionSetCount(s), 0) >= 1000 },
+  { id: "pr10", name: "Record Breaker", desc: "PRs on 10 exercises", icon: "trophy", test: (h) => bestSets(h).size >= 10 },
+  { id: "early", name: "Early Bird", desc: "Train before 7am", icon: "clock", test: (h) => h.some((s) => new Date(s.startedAt).getHours() < 7) },
+  { id: "night", name: "Night Owl", desc: "Train after 9pm", icon: "moon", test: (h) => h.some((s) => new Date(s.startedAt).getHours() >= 21) },
+  { id: "week5", name: "Big Week", desc: "5 sessions in one week", icon: "calendar", test: (h) => {
+      const perWeek = new Map();
+      for (const s of h) {
+        const wk = dateKey(startOfWeek(fromKey(s.dateKey)));
+        perWeek.set(wk, (perWeek.get(wk) || 0) + 1);
+      }
+      return [...perWeek.values()].some((n) => n >= 5);
+    } },
+];
+
+export function achievements(history) {
+  return ACHIEVEMENTS.map((a) => ({ ...a, earned: a.test(history) }));
 }

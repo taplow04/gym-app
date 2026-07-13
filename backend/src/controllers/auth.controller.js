@@ -43,14 +43,14 @@ exports.logoutAll = async (req, res) => {
     .json({ success: true, message: "Logged out on all devices" });
 };
 
-exports.verifyEmail = async (req, res) => {
-  await authService.verifyEmail(req.params.token);
-  res.json({ success: true, message: "Email verified" });
+exports.verifyOtp = async (req, res) => {
+  const user = await authService.verifyEmailOtp(req.user._id, req.body.code);
+  res.json({ success: true, message: "Email verified", data: { user } });
 };
 
-exports.resendVerification = async (req, res) => {
-  await authService.resendVerification(req.user);
-  res.json({ success: true, message: "Verification email sent" });
+exports.resendOtp = async (req, res) => {
+  await authService.resendVerificationOtp(req.user);
+  res.json({ success: true, message: "Verification code sent" });
 };
 
 exports.forgotPassword = async (req, res) => {

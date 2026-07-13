@@ -29,13 +29,12 @@ async function register({ name, email, password }, meta) {
   if (existing) throw ApiError.conflict("That email is already registered");
 
   const user = new User({ name, email, password });
-  const rawVerify = user.createOneTimeToken("emailVerification", 24 * 60);
+  const code = user.createEmailOtp(env.otp.ttlMinutes);
   await user.save();
 
   // Fire-and-forget: the response must never wait on the email provider.
-  const verifyUrl = `${env.clientUrl}/#/verify-email/${rawVerify}`;
-  sendEmail(user.email, templates.verifyEmail(user.name, verifyUrl)).catch((err) =>
-    console.error("verification email failed:", err.message)
+  sendEmail(user.email, templates.verifyOtp(user.name, code, env.otp.ttlMinutes)).catch(
+    (err) => console.error("verification email failed:", err.message)
   );
 
   const tokens = await issueTokens(user, true, meta);
@@ -82,28 +81,57 @@ async function logout(rawToken) {
 
 const logoutAll = (userId) => RefreshToken.deleteMany({ user: userId });
 
-async function verifyEmail(rawToken) {
-  const user = await User.findOne({
-    emailVerificationToken: User.hashToken(rawToken),
-    emailVerificationExpires: { $gt: new Date() },
-  }).select("+emailVerificationToken +emailVerificationExpires");
-  if (!user) throw ApiError.badRequest("Verification link is invalid or has expired");
+const OTP_FIELDS =
+  "+emailOtpHash +emailOtpExpires +emailOtpAttempts +emailOtpLastSentAt";
+
+async function verifyEmailOtp(userId, code) {
+  const user = await User.findById(userId).select(OTP_FIELDS);
+  if (!user) throw ApiError.unauthorized("User no longer exists");
+  if (user.emailVerified) throw ApiError.badRequest("Email is already verified");
+
+  if (!user.emailOtpHash || !user.emailOtpExpires || user.emailOtpExpires < new Date()) {
+    throw ApiError.badRequest("That code has expired — request a new one");
+  }
+  if (user.emailOtpAttempts >= env.otp.maxAttempts) {
+    // Burned: this code can never succeed again, only a resend helps.
+    user.clearEmailOtp();
+    await user.save();
+    throw ApiError.badRequest("Too many incorrect attempts — request a new code");
+  }
+
+  if (!user.checkEmailOtp(code)) {
+    user.emailOtpAttempts += 1;
+    await user.save();
+    const left = env.otp.maxAttempts - user.emailOtpAttempts;
+    throw ApiError.badRequest(
+      left > 0
+        ? `Incorrect code — ${left} attempt${left === 1 ? "" : "s"} left`
+        : "Too many incorrect attempts — request a new code"
+    );
+  }
 
   user.emailVerified = true;
-  user.emailVerificationToken = undefined;
-  user.emailVerificationExpires = undefined;
+  user.clearEmailOtp();
   await user.save();
   return user;
 }
 
-async function resendVerification(user) {
-  if (user.emailVerified) throw ApiError.badRequest("Email is already verified");
-  const fresh = await User.findById(user._id);
-  const raw = fresh.createOneTimeToken("emailVerification", 24 * 60);
-  await fresh.save();
-  const verifyUrl = `${env.clientUrl}/#/verify-email/${raw}`;
-  sendEmail(fresh.email, templates.verifyEmail(fresh.name, verifyUrl)).catch((err) =>
-    console.error("resend verification email failed:", err.message)
+async function resendVerificationOtp(authedUser) {
+  if (authedUser.emailVerified) throw ApiError.badRequest("Email is already verified");
+
+  const user = await User.findById(authedUser._id).select(OTP_FIELDS);
+  const cooldownMs = env.otp.resendCooldownSec * 1000;
+  if (user.emailOtpLastSentAt && Date.now() - user.emailOtpLastSentAt.getTime() < cooldownMs) {
+    const wait = Math.ceil(
+      (cooldownMs - (Date.now() - user.emailOtpLastSentAt.getTime())) / 1000
+    );
+    throw ApiError.tooMany(`Please wait ${wait}s before requesting another code`);
+  }
+
+  const code = user.createEmailOtp(env.otp.ttlMinutes); // invalidates the old code
+  await user.save();
+  sendEmail(user.email, templates.verifyOtp(user.name, code, env.otp.ttlMinutes)).catch(
+    (err) => console.error("resend verification email failed:", err.message)
   );
 }
 
@@ -153,8 +181,8 @@ module.exports = {
   refresh,
   logout,
   logoutAll,
-  verifyEmail,
-  resendVerification,
+  verifyEmailOtp,
+  resendVerificationOtp,
   forgotPassword,
   resetPassword,
   changePassword,

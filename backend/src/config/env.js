@@ -36,6 +36,13 @@ const env = {
   // Render block outbound SMTP ports; 443 always works).
   brevoApiKey: process.env.BREVO_API_KEY,
 
+  // Email-verification OTP behaviour (all optional, sane defaults).
+  otp: {
+    ttlMinutes: Number(process.env.OTP_TTL_MINUTES) || 10,
+    maxAttempts: Number(process.env.OTP_MAX_ATTEMPTS) || 5,
+    resendCooldownSec: Number(process.env.OTP_RESEND_COOLDOWN_SEC) || 60,
+  },
+
   smtp: {
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT) || 587,

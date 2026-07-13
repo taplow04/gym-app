@@ -146,6 +146,70 @@ const ICONS = {
       <circle cx="12" cy="16.5" r="0.8" fill="currentColor" stroke="none" />
     </>
   ),
+  star: (
+    <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1.1 5.8L12 16.8l-5.3 2.8 1.1-5.8-4.3-4.1 5.9-.8L12 3.5z" />
+  ),
+  timer: (
+    <>
+      <circle cx="12" cy="13.5" r="7.5" />
+      <path d="M12 9.5v4l2.5 1.5M9.5 2.5h5M12 2.5V6" />
+    </>
+  ),
+  pause: <path d="M9 5.5v13M15 5.5v13" strokeWidth="2.6" />,
+  repeat: (
+    <>
+      <path d="M4 12V9a4 4 0 0 1 4-4h12l-3-3m3 3-3 3" />
+      <path d="M20 12v3a4 4 0 0 1-4 4H4l3 3m-3-3 3-3" />
+    </>
+  ),
+  minus: <path d="M5 12h14" />,
+  maximize: (
+    <>
+      <path d="M9 3H3v6M15 3h6v6M9 21H3v-6M15 21h6v-6" />
+    </>
+  ),
+  volume: (
+    <>
+      <path d="M4 9.5v5h3.5L12 19V5L7.5 9.5H4z" />
+      <path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11" />
+    </>
+  ),
+  "volume-off": (
+    <>
+      <path d="M4 9.5v5h3.5L12 19V5L7.5 9.5H4z" />
+      <path d="m16 9.5 5 5m0-5-5 5" />
+    </>
+  ),
+  droplet: (
+    <path d="M12 3.5c3.2 4 6 7 6 10.2a6 6 0 0 1-12 0C6 10.5 8.8 7.5 12 3.5z" />
+  ),
+  award: (
+    <>
+      <circle cx="12" cy="9" r="5.5" />
+      <path d="m8.8 13.6-1.8 7 5-2.6 5 2.6-1.8-7" />
+    </>
+  ),
+  bookmark: <path d="M6.5 3.5h11V21L12 17l-5.5 4V3.5z" />,
+  ruler: (
+    <>
+      <rect x="3" y="8.5" width="18" height="7" rx="1.5" />
+      <path d="M7 8.5v3M11 8.5v4.5M15 8.5v3" />
+    </>
+  ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.5" />
+      <circle cx="12" cy="7.8" r="0.8" fill="currentColor" stroke="none" />
+    </>
+  ),
+  moon: <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" />,
+  scale: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="3" />
+      <path d="M8.5 9a5 5 0 0 1 7 0l-2.4 2.6a1.6 1.6 0 0 0-2.2 0L8.5 9z" />
+    </>
+  ),
 };
 
 export default function Icon({ name, size = 22, strokeWidth = 2, ...rest }) {
