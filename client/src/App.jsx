@@ -1,3 +1,4 @@
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   HashRouter as Router,
   Routes,
@@ -14,12 +15,15 @@ import Plan from "./pages/Plan";
 import Workout from "./pages/Workout";
 import Progress from "./pages/Progress";
 import Profile from "./pages/Profile";
-import Timer from "./pages/Timer";
-import Login from "./pages/auth/Login";
-import Register from "./pages/auth/Register";
-import ForgotPassword from "./pages/auth/ForgotPassword";
-import ResetPassword from "./pages/auth/ResetPassword";
-import VerifyEmail from "./pages/auth/VerifyEmail";
+
+// Off the critical path: auth screens and the timer load on demand.
+// The five tabs stay eager so tab switching is always instant.
+const Timer = lazy(() => import("./pages/Timer"));
+const Login = lazy(() => import("./pages/auth/Login"));
+const Register = lazy(() => import("./pages/auth/Register"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
+const VerifyEmail = lazy(() => import("./pages/auth/VerifyEmail"));
 
 // The app tabs need a session — signed in OR explicit guest mode
 // (Forge is local-first; guests keep the original no-account experience).
@@ -40,6 +44,52 @@ function PublicOnly({ children }) {
   return children;
 }
 
+function Splash() {
+  return (
+    <div className="splash" aria-label="Loading Forge">
+      <span className="auth-logo">
+        <Icon name="zap" size={26} strokeWidth={2.4} />
+      </span>
+    </div>
+  );
+}
+
+/** Native-style scroll: each tab remembers its position; new screens start at the top. */
+const scrollPositions = new Map();
+function ScrollMemory() {
+  const { pathname } = useLocation();
+  const prev = useRef(pathname);
+  useLayoutEffect(() => {
+    if (prev.current !== pathname) {
+      scrollPositions.set(prev.current, window.scrollY);
+      prev.current = pathname;
+    }
+    window.scrollTo(0, scrollPositions.get(pathname) ?? 0);
+  }, [pathname]);
+  return null;
+}
+
+/** Local-first means offline is a mode, not an error — say so calmly. */
+function OfflineBanner() {
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const up = () => setOnline(true);
+    const down = () => setOnline(false);
+    window.addEventListener("online", up);
+    window.addEventListener("offline", down);
+    return () => {
+      window.removeEventListener("online", up);
+      window.removeEventListener("offline", down);
+    };
+  }, []);
+  if (online) return null;
+  return (
+    <div className="offline-banner" role="status">
+      <Icon name="alert" size={14} /> Offline — workouts still save on this device
+    </div>
+  );
+}
+
 function Shell() {
   const { status } = useAuth();
   const { pathname } = useLocation();
@@ -50,39 +100,35 @@ function Shell() {
 
   // Restoring the previous session — a beat of brand instead of a flash
   // of the wrong screen.
-  if (status === "booting") {
-    return (
-      <div className="splash" aria-label="Loading Forge">
-        <span className="auth-logo">
-          <Icon name="zap" size={26} strokeWidth={2.4} />
-        </span>
-      </div>
-    );
-  }
+  if (status === "booting") return <Splash />;
 
   return (
     <>
-      <Routes>
-        {/* Public (auth) routes — email links land on the token routes */}
-        <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
-        {/* Register guards itself: becoming authed mid-flow must not
-            eject the user out of the optional "About you" step. */}
-        <Route path="/signup" element={<Register />} />
-        <Route path="/forgot-password" element={<PublicOnly><ForgotPassword /></PublicOnly>} />
-        <Route path="/reset-password/:token" element={<ResetPassword />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        {/* Legacy link-based verification emails land on the OTP screen. */}
-        <Route path="/verify-email/:token" element={<Navigate to="/verify-email" replace />} />
+      <ScrollMemory />
+      <Suspense fallback={<Splash />}>
+        <Routes>
+          {/* Public (auth) routes */}
+          <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
+          {/* Register guards itself: becoming authed mid-flow must not
+              eject the user out of the optional "About you" step. */}
+          <Route path="/signup" element={<Register />} />
+          <Route path="/forgot-password" element={<PublicOnly><ForgotPassword /></PublicOnly>} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          {/* Legacy link-based verification emails land on the OTP screen. */}
+          <Route path="/verify-email/:token" element={<Navigate to="/verify-email" replace />} />
 
-        {/* App tabs — session required */}
-        <Route path="/" element={<RequireAuth><Home /></RequireAuth>} />
-        <Route path="/plan" element={<RequireAuth><Plan /></RequireAuth>} />
-        <Route path="/workout" element={<RequireAuth><Workout /></RequireAuth>} />
-        <Route path="/progress" element={<RequireAuth><Progress /></RequireAuth>} />
-        <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
-        <Route path="/timer" element={<RequireAuth><Timer /></RequireAuth>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* App tabs — session required */}
+          <Route path="/" element={<RequireAuth><Home /></RequireAuth>} />
+          <Route path="/plan" element={<RequireAuth><Plan /></RequireAuth>} />
+          <Route path="/workout" element={<RequireAuth><Workout /></RequireAuth>} />
+          <Route path="/progress" element={<RequireAuth><Progress /></RequireAuth>} />
+          <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+          <Route path="/timer" element={<RequireAuth><Timer /></RequireAuth>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+      <OfflineBanner />
       {!onAuthScreen && <BottomNav />}
     </>
   );

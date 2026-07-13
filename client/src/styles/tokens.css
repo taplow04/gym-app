@@ -85,6 +85,7 @@
 
   /* ---- Layout ---- */
   --nav-h: 64px;
+  --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --page-max: 640px;
   --touch: 44px; /* minimum tap target */

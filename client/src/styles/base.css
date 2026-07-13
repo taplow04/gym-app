@@ -14,6 +14,13 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Kill pull-to-refresh + overscroll chaining — an over-drag must never
+     reload the app mid-workout. Sheets opt back in with `contain`. */
+  overscroll-behavior: none;
+  /* Keep focused inputs clear of the sticky session bar and bottom nav
+     when the browser auto-scrolls them into view for the keyboard. */
+  scroll-padding-top: 76px;
+  scroll-padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--sp-6));
 }
 
 body {
@@ -25,6 +32,43 @@ body {
   min-height: 100dvh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* ---- App, not website: no UI text selection, no long-press callouts,
+       no tap flash. Real text entry opts back in below. ---- */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea,
+[contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* No image/link ghosts on drag — nothing in this UI is meant to be dragged. */
+img,
+a {
+  -webkit-user-drag: none;
+}
+
+/* Instant taps: no 300ms double-tap-zoom wait on anything interactive. */
+button,
+a,
+input,
+select,
+textarea,
+label {
+  touch-action: manipulation;
 }
 
 h1, h2, h3, h4 {

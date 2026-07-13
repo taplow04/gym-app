@@ -11,7 +11,11 @@
 .page {
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: var(--sp-5) var(--sp-4) calc(var(--nav-h) + var(--safe-bottom) + var(--sp-7));
+  /* env() insets keep content off the notch/rounded corners in standalone
+     mode and landscape; they're 0 in a normal browser tab. */
+  padding: calc(var(--sp-5) + var(--safe-top)) calc(var(--sp-4) + env(safe-area-inset-right, 0px))
+    calc(var(--nav-h) + var(--safe-bottom) + var(--sp-7))
+    calc(var(--sp-4) + env(safe-area-inset-left, 0px));
   animation: page-in var(--dur-2) var(--ease);
 }
 
@@ -201,6 +205,8 @@
   border-radius: var(--r-md);
   color: var(--text-1);
   width: 100%;
+  /* ≥16px or iOS Safari auto-zooms the page on focus — the #1 website tell. */
+  font-size: max(1rem, var(--fs-base));
   transition: border-color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
 }
 

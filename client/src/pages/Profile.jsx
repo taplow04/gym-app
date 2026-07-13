@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import useLocalStorage, { readStore, clearStore } from "../hooks/useLocalStorage";
+import { onInstallAvailable, promptInstall, isStandalone } from "../lib/install";
 import Icon from "../components/Icon";
 import { useToast } from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
@@ -203,6 +204,15 @@ export default function Profile() {
   const navigate = useNavigate();
 
   const update = (patch) => setProfile((prev) => ({ ...prev, ...patch }));
+
+  // ── Install as app (PWA) ──
+  const [canInstall, setCanInstall] = useState(false);
+  useEffect(() => onInstallAvailable((available) => setCanInstall(available && !isStandalone())), []);
+
+  const install = async () => {
+    const accepted = await promptInstall();
+    if (accepted) toast("Forge installed — find it on your home screen", "success");
+  };
 
   // ── Avatar upload ──
   const fileRef = useRef(null);
@@ -597,6 +607,27 @@ export default function Profile() {
 
       {/* ── Health toolkit ── */}
       <HealthToolkit profile={profile} update={update} />
+
+      {canInstall && (
+        <section className="section">
+          <div className="card card--accent">
+            <p
+              style={{
+                color: "var(--text-2)",
+                fontSize: "var(--fs-sm)",
+                marginBottom: "var(--sp-3)",
+                lineHeight: 1.5,
+              }}
+            >
+              <strong style={{ color: "var(--text-1)" }}>Install Forge</strong> — full
+              screen, works offline, launches from your home screen like any app.
+            </p>
+            <button className="btn btn--primary btn--full" onClick={install}>
+              <Icon name="download" size={17} /> Install app
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="section">
         <div className="section-head">

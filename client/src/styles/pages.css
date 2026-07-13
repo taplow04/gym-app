@@ -202,8 +202,8 @@
   background: rgba(11, 13, 16, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  margin: calc(-1 * var(--sp-5)) calc(-1 * var(--sp-4)) var(--sp-4);
-  padding: var(--sp-3) var(--sp-4);
+  margin: calc(-1 * (var(--sp-5) + var(--safe-top))) calc(-1 * var(--sp-4)) var(--sp-4);
+  padding: calc(var(--sp-3) + var(--safe-top)) var(--sp-4) var(--sp-3);
   border-bottom: 1px solid var(--border);
 }
 
@@ -714,7 +714,7 @@
   min-height: 100dvh;
   max-width: 420px;
   margin: 0 auto;
-  padding: var(--sp-7) var(--sp-5) calc(var(--sp-7) + var(--safe-bottom));
+  padding: calc(var(--sp-7) + var(--safe-top)) var(--sp-5) calc(var(--sp-7) + var(--safe-bottom));
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1615,4 +1615,33 @@
 
 .set-type-hint strong {
   color: var(--text-2);
+}
+
+/* ============ App shell: offline banner ============ */
+
+.offline-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--nav-h) + var(--safe-bottom));
+  z-index: 49;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: 6px var(--sp-4);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  border-top: 1px solid rgba(251, 191, 36, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: toast-in var(--dur-2) var(--ease);
+}
+
+/* Auth screens have no bottom nav — pin the banner to the true bottom. */
+.auth-screen ~ .offline-banner {
+  bottom: 0;
+  padding-bottom: calc(6px + var(--safe-bottom));
 }
